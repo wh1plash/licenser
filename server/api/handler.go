@@ -1,14 +1,16 @@
 package api
 
 import (
+	"fmt"
 	"licenser/server/store"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
 type AppParams struct {
-	Name string `json:"app"`
+	Name string `json:"app" validate:"required,min=2"`
 }
 
 type AppHandler struct {
@@ -38,6 +40,20 @@ func (h AppHandler) HandleInsertApp(c *fiber.Ctx) error {
 	var params AppParams
 	if err := c.BodyParser(&params); err != nil {
 		return ErrBadRequest()
+	}
+
+	validate := validator.New()
+	if err := validate.Struct(params); err != nil {
+		fmt.Println("Begin validate---------33333333----------")
+		errs := err.(validator.ValidationErrors)
+		fmt.Println("----------", errs)
+		errors := make(map[string]string)
+		for _, e := range errs {
+			errors[e.Field()] = fmt.Sprintf("failed on '%s' tag", e.Tag())
+		}
+		fmt.Println("++++++", errors)
+		Err := NewValidationError(errors)
+		return c.Status(Err.Status).JSON(Err)
 	}
 
 	app, err := NewAppFromParams(params)
@@ -80,5 +96,21 @@ func ErrBadRequest() Error {
 	return Error{
 		Code:    fiber.StatusBadRequest,
 		Message: "invalid JSON request",
+	}
+}
+
+type ValidationError struct {
+	Status int               `json:"status"`
+	Errors map[string]string `json:"errors"`
+}
+
+func (e ValidationError) Error() string {
+	return "validation failed"
+}
+
+func NewValidationError(errors map[string]string) ValidationError {
+	return ValidationError{
+		Status: fiber.StatusUnprocessableEntity,
+		Errors: errors,
 	}
 }
