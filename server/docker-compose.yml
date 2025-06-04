@@ -1,0 +1,28 @@
+version: '3.8'
+services:
+  pg_db:
+    image: postgres:15
+    container_name: pg_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: licenser
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./store/postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d licenser"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "9080:9080"
+    container_name: licenser
+    depends_on:
+      pg_db:
+        condition: service_healthy    
+    # restart: on-failure
