@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"licenser/server/store"
+	"licenser/server/types"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -21,6 +22,15 @@ func NewAppHandler(s store.AppStore) *AppHandler {
 	return &AppHandler{
 		AppStore: s,
 	}
+}
+
+func (h AppHandler) HandleGetAppList(c *fiber.Ctx) error {
+	res, err := h.AppStore.GetAppList(c.Context())
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(res)
 }
 
 func (h AppHandler) HandleGetApp(c *fiber.Ctx) error {
@@ -44,14 +54,11 @@ func (h AppHandler) HandleInsertApp(c *fiber.Ctx) error {
 
 	validate := validator.New()
 	if err := validate.Struct(params); err != nil {
-		fmt.Println("Begin validate---------33333333----------")
 		errs := err.(validator.ValidationErrors)
-		fmt.Println("----------", errs)
 		errors := make(map[string]string)
 		for _, e := range errs {
 			errors[e.Field()] = fmt.Sprintf("failed on '%s' tag", e.Tag())
 		}
-		fmt.Println("++++++", errors)
 		Err := NewValidationError(errors)
 		return c.Status(Err.Status).JSON(Err)
 	}
@@ -68,8 +75,8 @@ func (h AppHandler) HandleInsertApp(c *fiber.Ctx) error {
 	return c.JSON(insApp)
 }
 
-func NewAppFromParams(params AppParams) (*store.App, error) {
-	return &store.App{
+func NewAppFromParams(params AppParams) (*types.App, error) {
+	return &types.App{
 		Name:      params.Name,
 		CreatedAt: time.Now(),
 		Until:     time.Now().AddDate(0, 1, 0),

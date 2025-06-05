@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
@@ -34,11 +35,19 @@ func main() {
 		fmt.Println(err)
 	}
 
+	redisClient := store.NewRedisClient(os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
+	ttl, err := time.ParseDuration(os.Getenv("REDIS_TTL"))
+	if err != nil {
+		log.Fatal("error to rarse duration")
+	}
+	dbCache := store.NewChachedStore(db, redisClient, ttl)
+
 	app := fiber.New()
-	appHandler := api.NewAppHandler(db)
+	appHandler := api.NewAppHandler(dbCache)
 
 	app.Get("/app", appHandler.HandleGetApp)
 	app.Post("/app", appHandler.HandleInsertApp)
+	app.Get("/apps", appHandler.HandleGetAppList)
 
 	log.Fatal(app.Listen(":9080"))
 

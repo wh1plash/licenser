@@ -7,8 +7,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: licenser
-    ports:
-      - "5432:5432"
     volumes:
       - ./store/postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -17,6 +15,21 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:8.0
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  pg_admin:
+    container_name: pg_admin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: noemail@noemail.com
+      PGADMIN_DEFAULT_PASSWORD: postgres
+    ports:
+      - "5050:80"
   app:
     build: .
     ports:

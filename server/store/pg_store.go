@@ -3,22 +3,11 @@ package store
 import (
 	"context"
 	"database/sql"
+	"licenser/server/types"
 	"time"
 
 	_ "github.com/lib/pq"
 )
-
-type AppStore interface {
-	GetApp(ctx context.Context, name string) (*App, error)
-	InsertApp(ctx context.Context, app *App) (*App, error)
-}
-
-type App struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"createdAt"`
-	Until     time.Time `json:"until"`
-}
 
 type PostgresStore struct {
 	db *sql.DB
@@ -39,7 +28,39 @@ func NewPostgresStore(connStr string) (*PostgresStore, error) {
 	}, nil
 }
 
-func (p PostgresStore) GetApp(ctx context.Context, name string) (*App, error) {
+func (p PostgresStore) GetAppList(ctx context.Context) ([]*types.App, error) {
+	time.Sleep(time.Second * 5)
+	rows, err := p.db.QueryContext(ctx, "select * from apps")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	apps := []*types.App{}
+	for rows.Next() {
+		app := new(types.App)
+		err := rows.Scan(
+			&app.ID,
+			&app.Name,
+			&app.CreatedAt,
+			&app.Until,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		apps = append(apps, app)
+	}
+
+	if len(apps) == 0 {
+		return nil, sql.ErrNoRows
+	}
+
+	return apps, nil
+
+}
+
+func (p PostgresStore) GetApp(ctx context.Context, name string) (*types.App, error) {
 	rows, err := p.db.QueryContext(ctx, "select * from apps where name=$1", name)
 	if err != nil {
 		return nil, err
@@ -49,7 +70,7 @@ func (p PostgresStore) GetApp(ctx context.Context, name string) (*App, error) {
 	if !rows.Next() {
 		return nil, sql.ErrNoRows
 	}
-	apps := &App{}
+	apps := &types.App{}
 	if err := rows.Scan(
 		&apps.ID,
 		&apps.Name,
@@ -71,7 +92,7 @@ func (p PostgresStore) CreateApp() error {
 		return nil
 	}
 
-	app := &App{
+	app := &types.App{
 		Name:      "App",
 		CreatedAt: time.Now(),
 		Until:     time.Now().AddDate(0, 1, 0),
@@ -85,13 +106,13 @@ func (p PostgresStore) CreateApp() error {
 	return nil
 }
 
-func (p PostgresStore) InsertApp(ctx context.Context, app *App) (*App, error) {
+func (p PostgresStore) InsertApp(ctx context.Context, app *types.App) (*types.App, error) {
 	query := `insert into apps
 		(name, created_at, until)
 		values($1, $2, $3)
 		returning id, name, created_at, until
 	`
-	insApp := &App{}
+	insApp := &types.App{}
 	err := p.db.QueryRowContext(
 		ctx,
 		query,
@@ -114,10 +135,11 @@ func (p PostgresStore) InsertApp(ctx context.Context, app *App) (*App, error) {
 func (p PostgresStore) createAppTable() error {
 	query := `create table if not exists apps (
 		id serial primary key,
-		name varchar(50),
+		name varchar(50) Not Null,
 		created_at timestamp,
-		until timestamp
-	)`
+		until timestamp,
+		CONSTRAINT unique_app_name UNIQUE (name)
+	);`
 
 	_, err := p.db.Exec(query)
 	if err != nil {

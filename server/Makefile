@@ -5,6 +5,6 @@ run: build
 	@./bin/app
 
 docker: build
-	@docker compose up --build
+	@docker compose up --build -d
 
 .PHONY: build
