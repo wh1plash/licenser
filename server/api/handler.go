@@ -4,15 +4,10 @@ import (
 	"fmt"
 	"licenser/server/store"
 	"licenser/server/types"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
-
-type AppParams struct {
-	Name string `json:"app" validate:"required,min=2"`
-}
 
 type AppHandler struct {
 	AppStore store.AppStore
@@ -34,7 +29,7 @@ func (h AppHandler) HandleGetAppList(c *fiber.Ctx) error {
 }
 
 func (h AppHandler) HandleGetApp(c *fiber.Ctx) error {
-	var params AppParams
+	var params types.AppParams
 	if err := c.BodyParser(&params); err != nil {
 		return ErrBadRequest()
 	}
@@ -47,7 +42,7 @@ func (h AppHandler) HandleGetApp(c *fiber.Ctx) error {
 }
 
 func (h AppHandler) HandleInsertApp(c *fiber.Ctx) error {
-	var params AppParams
+	var params types.AppParams
 	if err := c.BodyParser(&params); err != nil {
 		return ErrBadRequest()
 	}
@@ -63,7 +58,7 @@ func (h AppHandler) HandleInsertApp(c *fiber.Ctx) error {
 		return c.Status(Err.Status).JSON(Err)
 	}
 
-	app, err := NewAppFromParams(params)
+	app, err := types.NewAppFromParams(params)
 	if err != nil {
 		return err
 	}
@@ -73,14 +68,6 @@ func (h AppHandler) HandleInsertApp(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(insApp)
-}
-
-func NewAppFromParams(params AppParams) (*types.App, error) {
-	return &types.App{
-		Name:      params.Name,
-		CreatedAt: time.Now(),
-		Until:     time.Now().AddDate(0, 1, 0),
-	}, nil
 }
 
 func (e Error) Error() string {

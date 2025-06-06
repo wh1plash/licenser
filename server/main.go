@@ -49,7 +49,7 @@ func main() {
 	app.Post("/app", appHandler.HandleInsertApp)
 	app.Get("/apps", appHandler.HandleGetAppList)
 
-	log.Fatal(app.Listen(":9080"))
+	log.Fatal(app.Listen(os.Getenv("LISTEN_ADDR")))
 
 }
 

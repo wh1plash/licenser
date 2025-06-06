@@ -23,12 +23,10 @@ func (c *CachedStore) GetApp(ctx context.Context, name string) (*types.App, erro
 	if err == nil {
 		var app types.App
 		if err := json.Unmarshal([]byte(val), &app); err == nil {
-			fmt.Println("get from Redis")
 			return &app, nil
 		}
 	}
 
-	fmt.Println("Redis miss")
 	app, err := c.db.GetApp(ctx, name)
 	if err != nil {
 		return nil, err
@@ -47,11 +45,10 @@ func (c *CachedStore) GetAppList(ctx context.Context) ([]*types.App, error) {
 	if err == nil {
 		var apps []*types.App
 		if err := json.Unmarshal([]byte(val), &apps); err == nil {
-			fmt.Println("get from Redis")
 			return apps, nil
 		}
 	}
-	fmt.Println("Redis miss")
+
 	apps, err := c.db.GetAppList(ctx)
 	if err != nil {
 		return nil, err
